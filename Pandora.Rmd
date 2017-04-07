@@ -1,0 +1,95 @@
+---
+title: "Pandora"
+author: "crabess"
+date: "June 9, 2015"
+output: html_document
+---
+"1. Please create a way to visually compare monthly uniques on eaach platform from Jan 2010 to Dec 2011."
+
+Loading packages:
+
+```{r}
+library(openxlsx)
+library(reshape)
+library(ggplot2)
+library(scales)
+```
+
+Loading and formatting the data:
+
+```{r}
+dat <- read.xlsx("2015-03-19 Product Analytics - Sample Data[3].xlsx")
+mdat <- melt(dat, id="Row.Labels")
+mdat$Row.Labels <- as.Date(x=paste("1",mdat$Row.Labels,sep="-"),"%d-%Y-%m")
+mdat$Row.Labels <- format.Date(mdat$Row.Labels,"%Y-%m")
+```
+
+Subsetting the relevant portion of the data (2010-01 to 2011-12):
+
+```{r}
+mdat_subset <- mdat["2010-01" <= mdat$Row.Labels & "2011-12" >= mdat$Row.Labels,]
+```
+
+Plotting the data (unique users by month by device):
+
+```{r}
+ggplot(data = mdat_subset,aes(x = Row.Labels, y = value, fill = variable)) + geom_bar(stat = "identity") + theme(axis.title.x = element_blank()) + ylab("Unique Monthly Users") + scale_y_continuous(labels = comma) + scale_x_discrete(breaks=c("2010-01","2010-07","2011-01","2011-07")) + labs(fill="")
+```
+
+Plotting the data (proportion of unique users by month by device):
+
+```{r}
+ggplot(data = mdat_subset,aes(x = Row.Labels, y = value, fill = variable)) + geom_bar(position = "fill", stat = "identity") + scale_y_continuous(labels = percent_format()) + theme(axis.title.x = element_blank()) + ylab("% Unique Monthly Users") + scale_x_discrete(breaks=c("2010-01","2010-07","2011-01","2011-07")) + labs(fill="")
+```
+
+"2. Devise a single* metric to measure how successful we were at keeping listeners using the service on a daily basis during December 2011. By this metric, which are the top three platforms?"
+
+Load packages:
+
+```{r}
+library(openxlsx)
+library(reshape)
+library(quantmod)
+```
+
+Loading and formatting the data:
+
+```{r}
+dat <- read.xlsx("2015-03-19 Product Analytics - Sample Data[3].xlsx",sheet = "Daily Uniques",detectDates = TRUE)
+mdat <- dat[dat$Date>="2011-11-30" & dat$Date<="2011-12-31",]
+mdat <- melt(mdat,id="Date")
+```
+
+Calculating the % change (daily) by platform in Dec-11:
+
+```{r}
+changes <- tapply(mdat$value,mdat$variable,Delt) #fxn that calcs % change
+```
+
+Calculating the average % change (daily) removing max and min values:
+
+```{r}
+lapply(changes,function(x) mean(x[-max(x,na.rm = TRUE) & -min(x, na.rm = TRUE)],na.rm = TRUE))
+```
+
+"3. Comparing Dec 2010 to Dec 2011, which platforms experience the highest year-over-year growth in average listener hours per monthly unique?"
+
+Loading packages:
+
+```{r}
+library(openxlsx)
+```
+
+Loading and formatting the data:
+
+```{r}
+uniques <- read.xlsx("2015-03-19 Product Analytics - Sample Data[3].xlsx", sheet = "Monthly Uniques", detectDates = TRUE)
+hours <- read.xlsx("2015-03-19 Product Analytics - Sample Data[3].xlsx", sheet = "Hours", detectDates = TRUE)
+```
+
+Calculating hours per user and yoy growth:
+
+```{r}
+per_unique <- data.frame(Date=hours[,1],hours[,2:7]/uniques[,2:7])
+per_unique[36,2:7]/per_unique[23,2:7]-1
+```

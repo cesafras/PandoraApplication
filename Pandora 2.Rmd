@@ -1,0 +1,32 @@
+---
+title: 'Pandora #2'
+author: "crabess"
+date: "June 10, 2015"
+output: html_document
+---
+Load packages:
+
+```{r}
+library(openxlsx)
+library(reshape)
+library(quantmod)
+```
+Loading and formatting the data:
+
+```{r}
+dat <- read.xlsx("2015-03-19 Product Analytics - Sample Data[3].xlsx",sheet = "Daily Uniques",detectDates = TRUE)
+mdat <- dat[dat$Date>="2011-11-30" & dat$Date<="2011-12-31",]
+mdat <- melt(mdat,id="Date")
+```
+
+Calculating the % change (daily) by platform in Dec-11:
+
+```{r}
+changes <- tapply(mdat$value,mdat$variable,Delt) #fxn that calcs % change
+```
+
+Calculating the average % change (daily) removing max and min values:
+
+```{r}
+lapply(changes,function(x) mean(x[-max(x,na.rm = TRUE) & -min(x, na.rm = TRUE)],na.rm = TRUE))
+```
